@@ -149,6 +149,45 @@ meson install -C build          # появится команда `ermitage` и 
   показывается с названием, описанием и картинкой, а удаление идёт как у
   обычного приложения.
 
+### Отправка на Flathub
+
+В репозитории два манифеста, и это разные вещи:
+
+| файл | источник | для чего |
+|---|---|---|
+| `flatpak/io.github.ermitage.Ermitage.json` | `"type": "dir"` — рабочий каталог | быстрая локальная сборка бандла |
+| `flatpak/flathub/io.github.ermitage.Ermitage.json` | `"type": "git"` + тег + зафиксированный `commit` | то, что отправляется в `flathub/flathub` |
+
+Flathub собирает только из публичного источника: локальный каталог он не видит,
+поэтому «правильная» сборка — это git-источник с пином на коммит. Проверить
+ровно такую сборку можно локально, подменив URL на свой же клон:
+
+```bash
+SRC_URL=file://$PWD ./tools/build-flatpak.sh --from-git   # сборка как на Flathub
+```
+
+Один раз поменять app-id под свой аккаунт (Flathub требует, чтобы владелец
+`io.github.<логин>` существовал) и подставить URL:
+
+```bash
+./tools/setup-app-id.sh io.github.my-login.Ermitage https://github.com/my-login/ermitage
+git add -A && git commit -m "…" && git tag -a v1.0.0 -m "Эрмитаж 1.0.0"
+git push --tags
+git rev-parse v1.0.0^{commit}    # → в поле commit у flatpak/flathub/*.json
+```
+
+Дальше — форк `flathub/flathub`, ветка от `new-pr`, манифест в корень, PR.
+Подробный чек-лист: `flatpak/flathub/README.md`.
+
+Что проверено линтерами (flatpak-builder-lint 3.0.0, appstreamcli, desktop-file-validate):
+
+* манифест: ни одного замечания, кроме `appid-url-not-reachable` — это заглушка
+  `github.com/ermitage/ermitage`, она исчезает после публикации репозитория;
+* AppStream: без ошибок; остаются info про «первое слово с заглавной» (проверка
+  в appstreamcli не понимает кириллицу) и warnings о недоступных скриншотах
+  по тем же заглушкам;
+* `.desktop` проходит `desktop-file-validate`.
+
 Варианты на будущее: если раздавать не файлом, а через свой репозиторий —
 `flatpak build-export` и подпись `--gpg-sign`; для сабмита на Flathub манифест
 уже готов, только источник `"type": "dir"` меняется на `"type": "git"` с
@@ -341,8 +380,10 @@ src/masonry_gallery/
 ├── theme_switcher.py # три кружка оформления на Adw.ToggleGroup (как в Builder)
 └── style.css        # минимальный CSS (плитки рисуются в Gsk)
 data/                # .desktop, метаданные AppStream, иконка, схема GSettings
-tools/               # make_samples.py, bench.py, build-appimage.sh, build-flatpak.sh (→ .flatpak bundle)
+tools/               # make_samples.py, bench.py, build-appimage.sh,
+                     # build-flatpak.sh (→ .flatpak bundle), setup-app-id.sh
 flatpak/             # манифест Flatpak (org.gnome.Platform 51)
+flatpak/flathub/     # манифест и инструкция для отправки в Flathub
 dist/                # собранный AppImage (после tools/build-appimage.sh)
 ```
 
