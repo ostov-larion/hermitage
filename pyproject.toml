@@ -1,0 +1,15 @@
+[build-system]
+requires = ["meson-python>=0.13", "meson>=1.0"]
+build-backend = "mesonpy"
+
+[project]
+name = "ermitage"
+description = "Эрмитаж — быстрая галерея изображений на GTK4 + libadwaita с masonry-сеткой"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+dynamic = ["version"]
+dependencies = []
+
+[project.scripts]
+ermitage = "masonry_gallery.main:main"

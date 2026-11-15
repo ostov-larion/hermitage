@@ -1,0 +1,18 @@
+# собраное и сгенерированное
+build/
+build-*/
+dist/
+.flatpak-builder*/
+flatpak-repo/
+data/gschemas.compiled
+__pycache__/
+*.py[cod]
+*.AppImage
+
+# демо-набор изображений создаётся tools/make_samples.py
+samples/
+
+# окружения и кеши
+.venv/
+.cache/
+*.log

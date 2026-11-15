@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schemalist gettext-domain="ermitage">
+  <schema id="io.github.ermitage.Ermitage" path="/io/github/ermitage/Ermitage/">
+    <key name="last-folder" type="s">
+      <default>''</default>
+      <summary>Последняя открытая папка</summary>
+      <description>
+        Каталог, который открывается при запуске. Пустая строка — показать
+        приветственный экран и предложить выбрать папку.
+      </description>
+    </key>
+    <key name="sort-mode" type="s">
+      <choices>
+        <choice value="name"/>
+        <choice value="date"/>
+        <choice value="size"/>
+        <choice value="random"/>
+      </choices>
+      <default>'name'</default>
+      <summary>Порядок сортировки</summary>
+    </key>
+    <key name="thumb-size" type="s">
+      <choices>
+        <choice value="s"/>
+        <choice value="m"/>
+        <choice value="l"/>
+        <choice value="xl"/>
+      </choices>
+      <default>'m'</default>
+      <summary>Размер плиток</summary>
+    </key>
+    <key name="color-scheme" type="s">
+      <choices>
+        <choice value="system"/>
+        <choice value="light"/>
+        <choice value="dark"/>
+      </choices>
+      <default>'system'</default>
+      <summary>Оформление</summary>
+      <description>
+        Система — как в системе (Adw.ColorScheme.PREFER_LIGHT), светлая —
+        FORCE_LIGHT, тёмная — FORCE_DARK.
+      </description>
+    </key>
+    <key name="window-width" type="i">
+      <default>1280</default>
+      <summary>Ширина окна</summary>
+    </key>
+    <key name="window-height" type="i">
+      <default>840</default>
+      <summary>Высота окна</summary>
+    </key>
+  </schema>
+</schemalist>

@@ -1,0 +1,17 @@
+[Desktop Entry]
+Type=Application
+Name=Эрмитаж
+Name[en]=Ermitage
+GenericName=Просмотр фотографий
+GenericName[en]=Photo viewer
+Comment=Быстрая галерея изображений с masonry-сеткой
+Comment[en]=Fast masonry-grid image gallery
+Exec=ermitage %U
+Icon=io.github.ermitage.Ermitage
+Terminal=false
+Categories=Graphics;Viewer;Photography;GTK;
+Keywords=photo;image;gallery;viewer;pictures;masonry;фото;галерея;изображения;
+StartupNotify=true
+StartupWMClass=io.github.ermitage.Ermitage
+SingleMainWindow=true
+MimeType=image/jpeg;image/png;image/webp;image/gif;image/bmp;image/tiff;image/avif;image/heic;image/svg+xml;inode/directory;

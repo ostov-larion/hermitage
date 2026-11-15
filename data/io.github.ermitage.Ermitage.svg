@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128">
+  <!-- «Эрмитаж» — значок приложения по гайдлайнам GNOME:
+       полотно 128×128, вся площадь занята скруглённым квадратом,
+       простая геометрия сетки-масонри, без текста и мелких деталей,
+       поэтому читается и в 16 px. -->
+  <defs>
+    <linearGradient id="bg" x1="64" y1="6" x2="64" y2="122" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#5b8cff"/>
+      <stop offset="1" stop-color="#9b4dff"/>
+    </linearGradient>
+    <linearGradient id="shine" x1="64" y1="6" x2="64" y2="60" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.22"/>
+      <stop offset="1" stop-color="#ffffff" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+
+  <rect x="4" y="4" width="120" height="120" rx="30" fill="url(#bg)"/>
+  <rect x="4" y="4" width="120" height="120" rx="30" fill="url(#shine)"/>
+
+  <!-- сетка: три колонки, разная высота плиток -->
+  <g fill="#ffffff">
+    <rect x="24" y="26" width="24" height="34" rx="7" opacity="0.97"/>
+    <rect x="24" y="66" width="24" height="36" rx="7" opacity="0.70"/>
+
+    <rect x="52" y="26" width="24" height="52" rx="7" opacity="0.88"/>
+    <rect x="52" y="84" width="24" height="18" rx="7" opacity="0.62"/>
+
+    <rect x="80" y="26" width="24" height="24" rx="7" opacity="0.92"/>
+    <rect x="80" y="56" width="24" height="46" rx="7" opacity="0.66"/>
+  </g>
+</svg>

@@ -1,0 +1,82 @@
+/* Эрмитаж — каркас интерфейса.
+   Плитки рисуются вручную в Gsk (см. tile.py), поэтому CSS здесь минимальный:
+   чем меньше каскада — тем меньше работы на кадр. */
+
+.gallery-scroll,
+.masonry-view {
+  background: transparent;
+}
+
+/* индикатор масштаба в шапке просмотрщика: ширина фиксирована, чтобы текст
+   не обрезался при переходе «вписано» → «237%» */
+.zoom-indicator {
+  min-width: 3.6em;
+  font-feature-settings: "tnum" 1;
+}
+
+/* просмотрщик: тёмная «сцена» уместна в обеих темах, заголовок — системный */
+.viewer-window .viewer-scroll,
+.viewer-window .viewer-scroll > * {
+  background-color: #141416;
+}
+
+/* сцена просмотрщика */
+.image-stage {
+  background-color: #141416;
+}
+
+/* ------------------------------------------------- переключатель оформления
+   Три кружка «система / светлая / тёмная» прямо в главном меню — как в
+   GNOME Builder: без сегментированной подложки, выбранный обведён акцентом и
+   отмечен акцентной галочкой в углу. */
+.appearance-switcher,
+.appearance-switcher > toggle,
+.appearance-switcher > toggle:hover,
+.appearance-switcher > toggle:active,
+.appearance-switcher > toggle:checked {
+  background: none;
+  box-shadow: none;
+  border: none;
+  outline: none;
+}
+.appearance-switcher > toggle {
+  padding: 2px 10px;
+  min-width: 32px;
+  min-height: 32px;
+}
+.appearance-slot { padding: 3px; }
+.appearance-switcher > toggle:disabled { opacity: 0.4; }
+.appearance-switcher > separator {
+  background: none;
+  min-width: 0;
+  min-height: 0;
+  margin: 0;
+}
+
+/* сами кружки: рисуем в CSS, поэтому они чёткие при любом масштабе */
+.appearance-swatch {
+  border-radius: 99px;
+  border: 1px solid alpha(currentColor, 0.30);
+}
+.appearance-light { background-image: none; background-color: #ffffff; }
+.appearance-dark { background-image: none; background-color: #241f31; }
+.appearance-system {
+  background-image: linear-gradient(135deg, #ffffff 50%, #241f31 50%);
+}
+.appearance-switcher > toggle:hover .appearance-swatch {
+  box-shadow: 0 0 0 3px alpha(currentColor, 0.10);
+}
+.appearance-switcher > toggle:checked .appearance-swatch {
+  border-color: @accent_bg_color;
+  box-shadow: 0 0 0 2px @accent_bg_color;
+}
+.appearance-check {
+  background: @accent_bg_color;
+  color: @accent_fg_color;
+  border-radius: 99px;
+  font-size: 10px;
+  font-weight: 800;
+  min-width: 14px;
+  min-height: 14px;
+  padding: 1px 0 2px 0;
+}

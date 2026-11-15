@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>io.github.ermitage.Ermitage</id>
+
+  <name>Эрмитаж</name>
+  <summary>Быстрая галерея изображений с masonry-сеткой</summary>
+  <summary xml:lang="en">Fast masonry-grid image gallery</summary>
+
+  <metadata_license>MIT</metadata_license>
+  <project_license>MIT</project_license>
+
+  <description>
+    <p>
+      Эрмитаж показывает каталоги с фотографиями плотной «masonry»-сеткой:
+      плитки сохраняют пропорции снимков, как в Pinterest или Google Images.
+    </p>
+    <p>Что внутри:</p>
+    <ul>
+      <li>Виртуализированный список: в памяти живут только видимые плитки, поэтому каталог на десятки тысяч фотографий открывается за секунды.</li>
+      <li>Миниатюры декодируются в фоновом потоке сразу в нужном масштабе, кэшируются на диске и в виде GPU-текстур.</li>
+      <li>Собственный masonry-контейнер: один линейный проход по элементам и переиспользование виджетов при прокрутке.</li>
+      <li>Поиск по имени файла, сортировка, размер плиток, полноэкранный просмотрщик с масштабом и панорамированием.</li>
+      <li>Тёмная и светлая темы, системный акцентный цвет, drag &amp; drop каталогов.</li>
+    </ul>
+  </description>
+
+  <launchable type="desktop-id">io.github.ermitage.Ermitage.desktop</launchable>
+
+  <provides>
+    <binary>ermitage</binary>
+  </provides>
+
+  <categories>
+    <category>Graphics</category>
+    <category>Viewer</category>
+  </categories>
+
+  <kudos>
+    <kudo>ModernToolkit</kudo>
+    <kudo>HiDpiIcon</kudo>
+    <kudo>HighContrast</kudo>
+    <kudo>UserDocs</kudo>
+  </kudos>
+
+  <screenshots>
+    <screenshot type="default">
+      <caption>Сетка каталога с фотографиями</caption>
+      <image type="source">https://raw.githubusercontent.com/ermitage/ermitage/main/docs/grid.png</image>
+    </screenshot>
+    <screenshot>
+      <caption>Тёмная тема</caption>
+      <image type="source">https://raw.githubusercontent.com/ermitage/ermitage/main/docs/dark.png</image>
+    </screenshot>
+    <screenshot>
+      <caption>Просмотр изображения с масштабированием</caption>
+      <image type="source">https://raw.githubusercontent.com/ermitage/ermitage/main/docs/viewer.png</image>
+    </screenshot>
+  </screenshots>
+
+  <url type="homepage">https://github.com/ermitage/ermitage</url>
+  <url type="bugtracker">https://github.com/ermitage/ermitage/issues</url>
+
+  <developer id="io.github.ermitage">
+    <name>Сообщество «Эрмитаж»</name>
+  </developer>
+
+  <content_rating type="oars-1.1"/>
+
+  <releases>
+    <release version="1.0.0" date="2026-11-16">
+      <description>
+        <p>Первый выпуск: masonry-сетка, виртуализация, кэш миниатюр, просмотрщик.</p>
+      </description>
+    </release>
+  </releases>
+
+  <requires>
+    <control>keyboard</control>
+    <control>pointing</control>
+    <display_length compare="ge">360</display_length>
+  </requires>
+
+  <recommends>
+    <memory>4096</memory>
+  </recommends>
+</component>
