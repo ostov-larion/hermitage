@@ -179,6 +179,13 @@ git rev-parse v1.0.0^{commit}    # → в поле commit у flatpak/flathub/*.j
 Дальше — форк `flathub/flathub`, ветка от `new-pr`, манифест в корень, PR.
 Подробный чек-лист: `flatpak/flathub/README.md`.
 
+Всё это проверяется одной командой (нужен `flatpak-builder-lint` и собранный
+пакет):
+
+```bash
+./tools/lint-flatpak.sh
+```
+
 Что проверено линтерами (flatpak-builder-lint 3.0.0, appstreamcli, desktop-file-validate):
 
 * манифест: ни одного замечания, кроме `appid-url-not-reachable` — это заглушка
