@@ -19,7 +19,7 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 
 APP_ID="io.github.ermitage.Ermitage"
-BRANCH="stable"                 # ветка из flatpak/*.json
+BRANCH="${BRANCH:-stable}"      # ветку задаёт сборка: в манифесте она лишняя
 ARCH="${ARCH:-x86_64}"
 MANIFEST="flatpak/${APP_ID}.json"
 REPO="dist/flatpak-repo"        # локальный ostree-репозиторий сборки (промежуточный)
@@ -46,6 +46,7 @@ fi
 echo "==> сборка $APP_ID $VERSION (ветка $BRANCH, $ARCH)"
 flatpak-builder \
   --force-clean \
+  --default-branch="$BRANCH" \
   --disable-rofiles-fuse \
   --state-dir="$STATE_DIR" \
   --repo="$REPO" \

@@ -39,7 +39,6 @@
     <kudo>ModernToolkit</kudo>
     <kudo>HiDpiIcon</kudo>
     <kudo>HighContrast</kudo>
-    <kudo>UserDocs</kudo>
   </kudos>
 
   <screenshots>
@@ -74,13 +73,10 @@
     </release>
   </releases>
 
-  <requires>
+  <recommends>
     <control>keyboard</control>
     <control>pointing</control>
     <display_length compare="ge">360</display_length>
-  </requires>
-
-  <recommends>
     <memory>4096</memory>
   </recommends>
 </component>
