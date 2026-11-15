@@ -120,24 +120,46 @@ meson setup build --prefix=/usr/local
 meson install -C build          # появится команда `ermitage` и .desktop-файл
 ```
 
-## Flatpak
+## Flatpak: один установочный файл
 
-Манифест лежит в `flatpak/io.github.ermitage.Ermitage.json`, всё собирается
-скриптом:
+Сборка даёт **bundle** — самодостаточный файл, который открывается системным
+установщиком (GNOME Software, KDE Discover, «Центр приложений») как обычный
+пакет, без подключения репозиториев и без `--user`-фокусов:
 
 ```bash
-./tools/build-flatpak.sh          # сборка + установка в профиль пользователя
-./tools/build-flatpak.sh --run    # и сразу запуск
-flatpak run io.github.ermitage.Ermitage ~/Фото
+./tools/build-flatpak.sh
+# → dist/Ermitage-1.0.0-x86_64.flatpak  (~250 КБ, рантайм внутрь не входит)
 ```
 
-Что внутри манифеста:
+Установка — на стороне пользователя, а не сборки:
+
+* двойной клик по `.flatpak` в файловом менеджере → установщик;
+* или `flatpak install dist/Ermitage-1.0.0-x86_64.flatpak`;
+* запуск — `flatpak run io.github.ermitage.Ermitage` или иконка в меню приложений.
+
+Почему именно так:
+
+* **сборочный скрипт ничего не устанавливает.** Ни `flatpak-builder --install`,
+  ни `flatpak remote-add` для приложения: сборка не должна менять систему
+  разработчика и не должна создавать у него «локальный репозиторий», которого
+  у пользователя всё равно нет;
+* в бандл вшита ссылка на flathub (`flatpak build-bundle --runtime-repo=…`) —
+  если у получателя нет рантайма GNOME, установщик сам предложит его скачать;
+* ключи AppStream и иконка внутри бандла, поэтому в GNOME Software файл
+  показывается с названием, описанием и картинкой, а удаление идёт как у
+  обычного приложения.
+
+Варианты на будущее: если раздавать не файлом, а через свой репозиторий —
+`flatpak build-export` и подпись `--gpg-sign`; для сабмита на Flathub манифест
+уже готов, только источник `"type": "dir"` меняется на `"type": "git"` с
+`tag`/`commit` (и добавляется `--runtime-repo` в инструкцию установки).
+
+Что внутри манифеста `flatpak/io.github.ermitage.Ermitage.json`:
 
 * рантайм `org.gnome.Platform`/`org.gnome.Sdk` **51** — в нём уже есть GTK 4,
-  libadwaita и PyGObject, поэтому приложению нечего компилировать: сборка
-  занимает секунды и не требует сети, кроме первого скачивания рантайма
-  (`flatpak remote-add --if-not-exists --user flathub
-  https://flathub.org/repo/flathub.flatpakrepo`);
+  libadwaita и PyGObject, поэтому компилировать нечего и сборка занимает
+  секунды. Рантаймы 48 и старше сняты с поддержки (GNOME 48 — с марта 2026),
+  при обновлении достаточно поменять `runtime-version`;
 * установка через `meson` с префиксом `/app`: пакет → `site-packages`,
   команда `ermitage` → `/app/bin`, `.desktop`, метаданные AppStream, иконка и
   схема GSettings — по своим местам (`gnome.post_install` компилирует схему и
@@ -146,18 +168,11 @@ flatpak run io.github.ermitage.Ermitage ~/Фото
   (`--filesystem=host:ro`) — галерее нужно показывать снимки откуда угодно,
   но запись ей не нужна; плюс доступ к gvfs для «Показать в файловом менеджере».
 
-Сборка проверена целиком: `flatpak` 1.16.6 + `flatpak-builder` 1.4.4, рантайм
-`org.gnome.Platform//51` (GTK 4.24, libadwaita 1.10, Python 3.14). Собранный
-пакет ставится и запускается:
-
-```bash
-flatpak-builder --user --install --force-clean \
-  --repo=dist/flatpak-repo build-flatpak flatpak/io.github.ermitage.Ermitage.json
-flatpak run io.github.ermitage.Ermitage ~/Фото
-```
-
-Рантаймы 48 и старше сняты с поддержки (GNOME 48 — с марта 2026), поэтому в
-манифесте 51; при обновлении достаточно поменять `runtime-version`.
+Для сборки нужны только `flatpak`, `flatpak-builder` и один раз скачанный
+рантайм на машине разработчика: `flatpak install flathub
+org.gnome.Platform//51 org.gnome.Sdk//51`. Проверено целиком: `flatpak` 1.16.6,
+`flatpak-builder` 1.4.4, GTK 4.24, libadwaita 1.10, Python 3.14 — собранный
+бандл поставлен с нуля и запущен.
 
 Что стоит помнить про песочницу: приложению видна только файловая система,
 разрешённая в `finish-args`, поэтому каталоги вне `host` (например `/tmp`)
@@ -326,7 +341,7 @@ src/masonry_gallery/
 ├── theme_switcher.py # три кружка оформления на Adw.ToggleGroup (как в Builder)
 └── style.css        # минимальный CSS (плитки рисуются в Gsk)
 data/                # .desktop, метаданные AppStream, иконка, схема GSettings
-tools/               # make_samples.py, bench.py, build-appimage.sh, build-flatpak.sh
+tools/               # make_samples.py, bench.py, build-appimage.sh, build-flatpak.sh (→ .flatpak bundle)
 flatpak/             # манифест Flatpak (org.gnome.Platform 51)
 dist/                # собранный AppImage (после tools/build-appimage.sh)
 ```
