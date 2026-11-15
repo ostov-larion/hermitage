@@ -1,9 +1,9 @@
 {
-  "app-id": "io.github.ermitage.Ermitage",
+  "app-id": "io.github.hermitage.Hermitage",
   "runtime": "org.gnome.Platform",
   "runtime-version": "51",
   "sdk": "org.gnome.Sdk",
-  "command": "ermitage",
+  "command": "hermitage",
   "finish-args": [
     "--share=ipc",
     "--socket=fallback-x11",
@@ -18,14 +18,14 @@
     "/lib/pkgconfig",
     "/share/man",
     "/share/gtk-doc",
-    "/share/ermitage/tools",
+    "/share/hermitage/tools",
     "/cache",
     "/.lock",
     "/.flatpak-builder"
   ],
   "modules": [
     {
-      "name": "ermitage",
+      "name": "hermitage",
       "buildsystem": "meson",
       "config-opts": [
         "--buildtype=release"

@@ -167,10 +167,10 @@ class ThumbnailLoader:
         self._root = cache_dir or _cache_root()
         self._disk_cache = disk_cache
         # бюджет кэша текстур: 192 МБ хватает на ~30 плиток экрана и десятки
-        # экранов назад; настраивается через ERMITAGE_CACHE_MB
+        # экранов назад; настраивается через HERMITAGE_CACHE_MB
         if memory_budget is None:
             try:
-                memory_budget = int(os.environ.get("ERMITAGE_CACHE_MB", "192")) << 20
+                memory_budget = int(os.environ.get("HERMITAGE_CACHE_MB", "192")) << 20
             except ValueError:
                 memory_budget = 192 << 20
         self._budget = max(32 << 20, memory_budget)

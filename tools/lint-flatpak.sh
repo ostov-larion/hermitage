@@ -6,9 +6,9 @@
 set -uo pipefail
 cd "$(dirname "$0")/.."
 
-MANIFEST="flatpak/flathub/io.github.ermitage.Ermitage.json"
-METAINFO="build-flatpak/files/share/metainfo/io.github.ermitage.Ermitage.metainfo.xml"
-DESKTOP="build-flatpak/files/share/applications/io.github.ermitage.Ermitage.desktop"
+MANIFEST="flatpak/flathub/io.github.hermitage.Hermitage.json"
+METAINFO="build-flatpak/files/share/metainfo/io.github.hermitage.Hermitage.metainfo.xml"
+DESKTOP="build-flatpak/files/share/applications/io.github.hermitage.Hermitage.desktop"
 
 # flatpak-builder-lint нужен gi (AppStream, OSTree), поэтому запускаем его
 # системным python; если он поставлен в site-packages другого интерпретатора —

@@ -52,7 +52,7 @@ THUMB_LABELS = (
 
 
 class GalleryWindow(Adw.ApplicationWindow):
-    __gtype_name__ = "ErmitageWindow"
+    __gtype_name__ = "HermitageWindow"
 
     def __init__(self, application, loader, settings: Settings | None = None) -> None:
         super().__init__(application=application, title="Эрмитаж")
@@ -550,7 +550,7 @@ class GalleryWindow(Adw.ApplicationWindow):
             self._stack.set_visible_child_name("grid")
         if not self._first_paint_at:
             self._first_paint_at = time.monotonic()
-            if os.environ.get("ERMITAGE_TIMING"):
+            if os.environ.get("HERMITAGE_TIMING"):
                 print(f"[эрмитаж] первые плитки на экране: "
                       f"{self._first_paint_at - self._load_started:.2f} c", flush=True)
         self._update_title()
@@ -580,7 +580,7 @@ class GalleryWindow(Adw.ApplicationWindow):
             if count > 400:
                 self._toast(f"Проиндексировано {plural_images(count)}", timeout=3)
         self._update_title()
-        if os.environ.get("ERMITAGE_TIMING"):
+        if os.environ.get("HERMITAGE_TIMING"):
             print(f"[эрмитаж] индексация {count} файлов: "
                   f"{time.monotonic() - self._load_started:.2f} c", flush=True)
 

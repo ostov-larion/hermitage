@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<schemalist gettext-domain="ermitage">
-  <schema id="io.github.ermitage.Ermitage" path="/io/github/ermitage/Ermitage/">
+<schemalist gettext-domain="hermitage">
+  <schema id="io.github.hermitage.Hermitage" path="/io/github/hermitage/Hermitage/">
     <key name="last-folder" type="s">
       <default>''</default>
       <summary>Последняя открытая папка</summary>

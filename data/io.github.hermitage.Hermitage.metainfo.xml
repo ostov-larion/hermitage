@@ -1,8 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <component type="desktop-application">
-  <id>io.github.ermitage.Ermitage</id>
+  <id>io.github.hermitage.Hermitage</id>
 
   <name>Эрмитаж</name>
+  <name xml:lang="en">Hermitage</name>
   <summary>Быстрая галерея изображений с masonry-сеткой</summary>
   <summary xml:lang="en">Fast masonry-grid image gallery</summary>
 
@@ -24,10 +25,10 @@
     </ul>
   </description>
 
-  <launchable type="desktop-id">io.github.ermitage.Ermitage.desktop</launchable>
+  <launchable type="desktop-id">io.github.hermitage.Hermitage.desktop</launchable>
 
   <provides>
-    <binary>ermitage</binary>
+    <binary>hermitage</binary>
   </provides>
 
   <categories>
@@ -44,22 +45,22 @@
   <screenshots>
     <screenshot type="default">
       <caption>Сетка каталога с фотографиями</caption>
-      <image type="source">https://raw.githubusercontent.com/ermitage/ermitage/main/docs/grid.png</image>
+      <image type="source">https://raw.githubusercontent.com/hermitage/hermitage/main/docs/grid.png</image>
     </screenshot>
     <screenshot>
       <caption>Тёмная тема</caption>
-      <image type="source">https://raw.githubusercontent.com/ermitage/ermitage/main/docs/dark.png</image>
+      <image type="source">https://raw.githubusercontent.com/hermitage/hermitage/main/docs/dark.png</image>
     </screenshot>
     <screenshot>
       <caption>Просмотр изображения с масштабированием</caption>
-      <image type="source">https://raw.githubusercontent.com/ermitage/ermitage/main/docs/viewer.png</image>
+      <image type="source">https://raw.githubusercontent.com/hermitage/hermitage/main/docs/viewer.png</image>
     </screenshot>
   </screenshots>
 
-  <url type="homepage">https://github.com/ermitage/ermitage</url>
-  <url type="bugtracker">https://github.com/ermitage/ermitage/issues</url>
+  <url type="homepage">https://github.com/hermitage/hermitage</url>
+  <url type="bugtracker">https://github.com/hermitage/hermitage/issues</url>
 
-  <developer id="io.github.ermitage">
+  <developer id="io.github.hermitage">
     <name>Сообщество «Эрмитаж»</name>
   </developer>
 

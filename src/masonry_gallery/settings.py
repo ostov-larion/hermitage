@@ -1,10 +1,10 @@
 """Настройки приложения.
 
-Основной бэкенд — GSettings (схема `io.github.ermitage.Ermitage`): так делают
+Основной бэкенд — GSettings (схема `io.github.hermitage.Hermitage`): так делают
 все приложения GNOME, и настройки попадают в dconf. Но приложение должно
 работать и «из исходников», где схема ещё не установлена, поэтому если схемы
 нет — те же ключи читаются и пишутся в
-`$XDG_CONFIG_HOME/ermitage/settings.json`.
+`$XDG_CONFIG_HOME/hermitage/settings.json`.
 """
 from __future__ import annotations
 
@@ -16,7 +16,7 @@ import gi
 gi.require_version("Gio", "2.0")
 from gi.repository import Gio, GLib  # noqa: E402
 
-SCHEMA_ID = "io.github.ermitage.Ermitage"
+SCHEMA_ID = "io.github.hermitage.Hermitage"
 
 DEFAULTS = {
     "last-folder": "",
@@ -41,7 +41,7 @@ class Settings:
         except Exception:  # noqa: BLE001 — работаем и без схемы
             self._gs = None
 
-        self._path = os.path.join(GLib.get_user_config_dir(), "ermitage", "settings.json")
+        self._path = os.path.join(GLib.get_user_config_dir(), "hermitage", "settings.json")
         self._data: dict = {} if self._gs is not None else self._read()
 
     # ------------------------------------------------------------------ служебное

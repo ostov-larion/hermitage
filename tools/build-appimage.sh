@@ -6,7 +6,7 @@
 # На машине пользователя не требуется ничего, кроме glibc, видеодрайвера
 # и шрифтов.
 #
-#   ./tools/build-appimage.sh              # соберёт dist/Ermitage-x86_64.AppImage
+#   ./tools/build-appimage.sh              # соберёт dist/Hermitage-x86_64.AppImage
 #   APPIMAGE_COMPRESSION=xz ./tools/build-appimage.sh
 #
 set -euo pipefail
@@ -19,8 +19,8 @@ ARCH=${ARCH:-x86_64}
 LIBDIR="/usr/lib/$ARCH-linux-gnu"
 
 COMPRESSION=${APPIMAGE_COMPRESSION:-zstd}
-APP_ID="io.github.ermitage.Ermitage"
-OUT="$DIST/Ermitage-$ARCH.AppImage"
+APP_ID="io.github.hermitage.Hermitage"
+OUT="$DIST/Hermitage-$ARCH.AppImage"
 
 # --- интерпретатор с PyGObject ------------------------------------------------
 PYTHON=""
@@ -106,7 +106,7 @@ mkdir -p "$APPDIR/usr/share/glib-2.0/schemas"
 cp -a /usr/share/glib-2.0/schemas/*.xml "$APPDIR/usr/share/glib-2.0/schemas/" 2>/dev/null || true
 cp -a /usr/share/glib-2.0/schemas/*.override "$APPDIR/usr/share/glib-2.0/schemas/" 2>/dev/null || true
 # схема самого приложения: без неё не сохраняются папка, сортировка и размер
-cp "$ROOT/data/io.github.ermitage.Ermitage.gschema.xml" "$APPDIR/usr/share/glib-2.0/schemas/"
+cp "$ROOT/data/io.github.hermitage.Hermitage.gschema.xml" "$APPDIR/usr/share/glib-2.0/schemas/"
 glib-compile-schemas "$APPDIR/usr/share/glib-2.0/schemas"
 
 # --- 6. иконки ----------------------------------------------------------------
@@ -182,11 +182,11 @@ fi
 
 # --- 8. AppRun и launcher -----------------------------------------------------
 echo "==> AppRun"
-cat > "$APPDIR/usr/bin/ermitage" <<'LAUNCHER'
+cat > "$APPDIR/usr/bin/hermitage" <<'LAUNCHER'
 #!/bin/sh
 exec python3 -m masonry_gallery "$@"
 LAUNCHER
-chmod +x "$APPDIR/usr/bin/ermitage"
+chmod +x "$APPDIR/usr/bin/hermitage"
 
 cat > "$APPDIR/AppRun" <<'APPRUN'
 #!/bin/sh
@@ -204,7 +204,7 @@ export XDG_DATA_DIRS="$HERE/usr/share:${XDG_DATA_DIRS:-/usr/local/share:/usr/sha
 export PYTHONDONTWRITEBYTECODE=1
 # Mesa/драйверы GL не входят в образ (их нельзя тащить за собой), поэтому по
 # умолчанию рисуем через cairo — он не зависит от драйверов. Кто хочет GL:
-# GSK_RENDERER=ngl ./Ermitage-x86_64.AppImage
+# GSK_RENDERER=ngl ./Hermitage-x86_64.AppImage
 export GSK_RENDERER="${GSK_RENDERER:-cairo}"
 # галерея не проигрывает видео: без этого GTK тянет модуль GStreamer с хоста
 export GTK_MEDIA="${GTK_MEDIA:-none}"
@@ -222,7 +222,7 @@ if command -v gdk-pixbuf-query-loaders >/dev/null 2>&1; then
   fi
 fi
 
-exec "$HERE/usr/bin/ermitage" "$@"
+exec "$HERE/usr/bin/hermitage" "$@"
 APPRUN
 chmod +x "$APPDIR/AppRun"
 

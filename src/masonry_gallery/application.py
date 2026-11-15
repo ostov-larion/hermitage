@@ -15,10 +15,10 @@ from .settings import Settings  # noqa: E402
 from .thumbnails import shared_loader  # noqa: E402
 from .window import GalleryWindow  # noqa: E402
 
-APP_ID = "io.github.ermitage.Ermitage"
+APP_ID = "io.github.hermitage.Hermitage"
 
 
-class ErmitageApplication(Adw.Application):
+class HermitageApplication(Adw.Application):
     def __init__(self) -> None:
         super().__init__(
             application_id=APP_ID,
@@ -84,7 +84,7 @@ class ErmitageApplication(Adw.Application):
             if os.path.exists(css_path):
                 provider.load_from_path(css_path)
             else:  # резерв: CSS внутри GResource (при установке через Flatpak)
-                provider.load_from_resource("/io/github/ermitage/Ermitage/style.css")
+                provider.load_from_resource("/io/github/hermitage/Hermitage/style.css")
         except GLib.Error as error:
             print(f"CSS не загружен: {error.message}")
             return

@@ -3,8 +3,8 @@
 #
 #   ./run.sh                  # последняя открытая папка или приветствие
 #   ./run.sh ~/Фото           # открыть конкретный каталог
-#   ERMITAGE_TIMING=1 ./run.sh ~/Фото      # с замерами индексации
-#   ERMITAGE_CACHE_MB=96 ./run.sh ~/Фото   # меньше кэш текстур
+#   HERMITAGE_TIMING=1 ./run.sh ~/Фото      # с замерами индексации
+#   HERMITAGE_CACHE_MB=96 ./run.sh ~/Фото   # меньше кэш текстур
 set -euo pipefail
 cd "$(dirname "$0")"
 export PYTHONPATH="${PYTHONPATH:+$PYTHONPATH:}src"
@@ -13,8 +13,8 @@ export PYTHONPATH="${PYTHONPATH:+$PYTHONPATH:}src"
 # плиток. Если она не установлена в систему — компилируем локальную копию и
 # подсовываем её через GSETTINGS_SCHEMA_DIR (без этого настройки ушли бы в
 # JSON-файл вместо dconf).
-SCHEMA_SRC="data/io.github.ermitage.Ermitage.gschema.xml"
-SCHEMA_DIR="${XDG_CACHE_HOME:-$HOME/.cache}/ermitage/schemas"
+SCHEMA_SRC="data/io.github.hermitage.Hermitage.gschema.xml"
+SCHEMA_DIR="${XDG_CACHE_HOME:-$HOME/.cache}/hermitage/schemas"
 if [ -f "$SCHEMA_SRC" ] && command -v glib-compile-schemas >/dev/null 2>&1; then
   if [ ! -f "$SCHEMA_DIR/gschemas.compiled" ] || [ "$SCHEMA_SRC" -nt "$SCHEMA_DIR/gschemas.compiled" ]; then
     mkdir -p "$SCHEMA_DIR"
@@ -25,7 +25,7 @@ if [ -f "$SCHEMA_SRC" ] && command -v glib-compile-schemas >/dev/null 2>&1; then
 fi
 
 # ищем интерпретатор, в котором есть PyGObject с GTK4 и libadwaita
-for candidate in "${ERMITAGE_PYTHON:-python3}" /usr/bin/python3 python3.13 python3.12 python3.11 python3.10; do
+for candidate in "${HERMITAGE_PYTHON:-python3}" /usr/bin/python3 python3.13 python3.12 python3.11 python3.10; do
   if command -v "$candidate" >/dev/null 2>&1 &&
      "$candidate" -c "import gi; gi.require_version('Gtk','4.0'); gi.require_version('Adw','1')" 2>/dev/null; then
     exec "$candidate" -m masonry_gallery "$@"

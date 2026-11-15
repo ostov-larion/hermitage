@@ -1,13 +1,13 @@
-"""Точка входа: `ermitage [КАТАЛОГ]`."""
+"""Точка входа: `hermitage [КАТАЛОГ]`."""
 from __future__ import annotations
 
 import sys
 
-from .application import ErmitageApplication
+from .application import HermitageApplication
 
 
 def main(argv: list[str] | None = None) -> int:
-    app = ErmitageApplication()
+    app = HermitageApplication()
     return app.run(argv if argv is not None else sys.argv)
 
 

@@ -17,7 +17,7 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-APP_ID="io.github.ermitage.Ermitage"
+APP_ID="io.github.hermitage.Hermitage"
 BRANCH="${BRANCH:-stable}"       # в манифесте ветки нет: её задаёт сборка
 ARCH="${ARCH:-x86_64}"
 REPO="dist/flatpak-repo"         # локальный ostree-репозиторий (промежуточный)
@@ -37,7 +37,7 @@ MANIFEST="flatpak/${APP_ID}.json"                    # источник: раб�
 
 VERSION=$(sed -n "s/^__version__ = \"\(.*\)\"/\1/p" src/masonry_gallery/__init__.py)
 : "${VERSION:=1.0.0}"
-BUNDLE="dist/Ermitage-${VERSION}-${ARCH}.flatpak"
+BUNDLE="dist/Hermitage-${VERSION}-${ARCH}.flatpak"
 
 for tool in flatpak flatpak-builder; do
   command -v "$tool" >/dev/null 2>&1 || {

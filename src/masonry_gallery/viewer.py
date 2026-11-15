@@ -27,7 +27,7 @@ MAX_SCALE = 16.0
 class ImageStage(Gtk.Widget):
     """Область показа изображения с масштабом и панорамированием."""
 
-    __gtype_name__ = "ErmitageImageStage"
+    __gtype_name__ = "HermitageImageStage"
 
     def __init__(self) -> None:
         super().__init__()
@@ -178,7 +178,7 @@ class ImageStage(Gtk.Widget):
 
 
 class ViewerWindow(Adw.Window):
-    __gtype_name__ = "ErmitageViewer"
+    __gtype_name__ = "HermitageViewer"
 
     def __init__(self, parent, loader, items: list, index: int, on_index_changed=None) -> None:
         super().__init__(transient_for=parent, modal=False)

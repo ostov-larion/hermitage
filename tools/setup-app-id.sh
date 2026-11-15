@@ -6,7 +6,7 @@ Flathub требует, чтобы app-id в схеме `io.github.<логин>.
 зашит: метаданные, .desktop, иконка, схема GSettings и её путь, константы в
 коде, манифесты Flatpak, meson-сборка, скрипты и README.
 
-    ./tools/setup-app-id.sh io.github.my-login.Ermitage https://github.com/my-login/ermitage
+    ./tools/setup-app-id.sh io.github.my-login.Hermitage https://github.com/my-login/hermitage
 
 Без второго аргумента URL репозитория остаётся прежним (заглушка).
 """
@@ -18,9 +18,9 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-OLD_ID = "io.github.ermitage.Ermitage"
-OLD_DEV = "io.github.ermitage"
-OLD_URL = "https://github.com/ermitage/ermitage"
+OLD_ID = "io.github.hermitage.Hermitage"
+OLD_DEV = "io.github.hermitage"
+OLD_URL = "https://github.com/hermitage/hermitage"
 TEXT_SUFFIXES = {".py", ".xml", ".json", ".build", ".desktop", ".sh", ".md",
                  ".css", ".toml", ".in"}
 SKIP_DIRS = {"build", "dist", ".git", "samples", "build-flatpak",
@@ -34,7 +34,7 @@ def fail(message: str) -> "None":
 
 def main() -> None:
     if len(sys.argv) < 2:
-        fail("укажите новый app-id, например io.github.my-login.Ermitage")
+        fail("укажите новый app-id, например io.github.my-login.Hermitage")
     new_id = sys.argv[1].strip()
     if not re.fullmatch(r"[A-Za-z][\w-]*(\.[A-Za-z][\w-]*){2,}", new_id):
         fail(f"«{new_id}» не похоже на app-id: нужны ≥3 компонента через точку")
@@ -53,7 +53,7 @@ def main() -> None:
     subs: list[tuple[str, str]] = [(OLD_ID, new_id), (old_path, new_path)]
     if match:
         login, repo = match.groups()
-        raw_old = "https://raw.githubusercontent.com/ermitage/ermitage"
+        raw_old = "https://raw.githubusercontent.com/hermitage/hermitage"
         raw_new = f"https://raw.githubusercontent.com/{login}/{repo}"
         subs += [(OLD_URL, new_url), (raw_old, raw_new)]
     subs.append((OLD_DEV, new_dev))

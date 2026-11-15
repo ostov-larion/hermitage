@@ -55,7 +55,7 @@ Google Images.
 * Поддержка JPEG, PNG, WebP, GIF, BMP, TIFF, AVIF, HEIC, JXL, SVG
   (что умеет gdk-pixbuf) и учёт **EXIF-ориентации**.
 * **Помнит состояние**: последняя папка, сортировка, размер плиток, тема и
-  размер окна сохраняются в GSettings (`io.github.ermitage.Ermitage`).
+  размер окна сохраняются в GSettings (`io.github.hermitage.Hermitage`).
 * **Адаптивный интерфейс**: окно сжимается до 360 px, сетка перестраивается от
   одной колонки до любой ширины, лишние кнопки шапки убираются через
   `Adw.Breakpoint`.
@@ -117,7 +117,7 @@ python3 tools/make_samples.py samples 200   # процедурные «фото�
 
 ```bash
 meson setup build --prefix=/usr/local
-meson install -C build          # появится команда `ermitage` и .desktop-файл
+meson install -C build          # появится команда `hermitage` и .desktop-файл
 ```
 
 ## Flatpak: один установочный файл
@@ -128,14 +128,14 @@ meson install -C build          # появится команда `ermitage` и 
 
 ```bash
 ./tools/build-flatpak.sh
-# → dist/Ermitage-1.0.0-x86_64.flatpak  (~250 КБ, рантайм внутрь не входит)
+# → dist/Hermitage-1.0.0-x86_64.flatpak  (~250 КБ, рантайм внутрь не входит)
 ```
 
 Установка — на стороне пользователя, а не сборки:
 
 * двойной клик по `.flatpak` в файловом менеджере → установщик;
-* или `flatpak install dist/Ermitage-1.0.0-x86_64.flatpak`;
-* запуск — `flatpak run io.github.ermitage.Ermitage` или иконка в меню приложений.
+* или `flatpak install dist/Hermitage-1.0.0-x86_64.flatpak`;
+* запуск — `flatpak run io.github.hermitage.Hermitage` или иконка в меню приложений.
 
 Почему именно так:
 
@@ -155,8 +155,8 @@ meson install -C build          # появится команда `ermitage` и 
 
 | файл | источник | для чего |
 |---|---|---|
-| `flatpak/io.github.ermitage.Ermitage.json` | `"type": "dir"` — рабочий каталог | быстрая локальная сборка бандла |
-| `flatpak/flathub/io.github.ermitage.Ermitage.json` | `"type": "git"` + тег + зафиксированный `commit` | то, что отправляется в `flathub/flathub` |
+| `flatpak/io.github.hermitage.Hermitage.json` | `"type": "dir"` — рабочий каталог | быстрая локальная сборка бандла |
+| `flatpak/flathub/io.github.hermitage.Hermitage.json` | `"type": "git"` + тег + зафиксированный `commit` | то, что отправляется в `flathub/flathub` |
 
 Flathub собирает только из публичного источника: локальный каталог он не видит,
 поэтому «правильная» сборка — это git-источник с пином на коммит. Проверить
@@ -170,7 +170,7 @@ SRC_URL=file://$PWD ./tools/build-flatpak.sh --from-git   # сборка как 
 `io.github.<логин>` существовал) и подставить URL:
 
 ```bash
-./tools/setup-app-id.sh io.github.my-login.Ermitage https://github.com/my-login/ermitage
+./tools/setup-app-id.sh io.github.my-login.Hermitage https://github.com/my-login/hermitage
 git add -A && git commit -m "…" && git tag -a v1.0.0 -m "Эрмитаж 1.0.0"
 git push --tags
 git rev-parse v1.0.0^{commit}    # → в поле commit у flatpak/flathub/*.json
@@ -189,7 +189,7 @@ git rev-parse v1.0.0^{commit}    # → в поле commit у flatpak/flathub/*.j
 Что проверено линтерами (flatpak-builder-lint 3.0.0, appstreamcli, desktop-file-validate):
 
 * манифест: ни одного замечания, кроме `appid-url-not-reachable` — это заглушка
-  `github.com/ermitage/ermitage`, она исчезает после публикации репозитория;
+  `github.com/hermitage/hermitage`, она исчезает после публикации репозитория;
 * AppStream: без ошибок; остаются info про «первое слово с заглавной» (проверка
   в appstreamcli не понимает кириллицу) и warnings о недоступных скриншотах
   по тем же заглушкам;
@@ -200,14 +200,14 @@ git rev-parse v1.0.0^{commit}    # → в поле commit у flatpak/flathub/*.j
 уже готов, только источник `"type": "dir"` меняется на `"type": "git"` с
 `tag`/`commit` (и добавляется `--runtime-repo` в инструкцию установки).
 
-Что внутри манифеста `flatpak/io.github.ermitage.Ermitage.json`:
+Что внутри манифеста `flatpak/io.github.hermitage.Hermitage.json`:
 
 * рантайм `org.gnome.Platform`/`org.gnome.Sdk` **51** — в нём уже есть GTK 4,
   libadwaita и PyGObject, поэтому компилировать нечего и сборка занимает
   секунды. Рантаймы 48 и старше сняты с поддержки (GNOME 48 — с марта 2026),
   при обновлении достаточно поменять `runtime-version`;
 * установка через `meson` с префиксом `/app`: пакет → `site-packages`,
-  команда `ermitage` → `/app/bin`, `.desktop`, метаданные AppStream, иконка и
+  команда `hermitage` → `/app/bin`, `.desktop`, метаданные AppStream, иконка и
   схема GSettings — по своим местам (`gnome.post_install` компилирует схему и
   кэш иконок);
 * `finish-args`: Wayland и X11, `--device=dri`, чтение всей файловой системы
@@ -229,9 +229,9 @@ org.gnome.Platform//51 org.gnome.Sdk//51`. Проверено целиком: `f
 Готовый самодостаточный файл, в котором уже лежат Python, GTK и libadwaita:
 
 ```bash
-tools/build-appimage.sh            # → dist/Ermitage-x86_64.AppImage, ~33 МБ
-chmod +x dist/Ermitage-x86_64.AppImage
-./dist/Ermitage-x86_64.AppImage ~/Фото
+tools/build-appimage.sh            # → dist/Hermitage-x86_64.AppImage, ~33 МБ
+chmod +x dist/Hermitage-x86_64.AppImage
+./dist/Hermitage-x86_64.AppImage ~/Фото
 ```
 
 Собирается один раз (нужны системные GTK4, libadwaita, PyGObject, `curl`,
@@ -254,7 +254,7 @@ GSettings-схемы, символические иконки Adwaita (без 12
 галерее не нужно). Оба значения можно переопределить из окружения:
 
 ```bash
-GSK_RENDERER=ngl ./dist/Ermitage-x86_64.AppImage ~/Фото
+GSK_RENDERER=ngl ./dist/Hermitage-x86_64.AppImage ~/Фото
 ```
 
 **Замеры на этом образе** (2 vCPU, 1 ГБ RAM, X11): от запуска `.AppImage` до
@@ -305,7 +305,7 @@ GSK_RENDERER=ngl ./dist/Ermitage-x86_64.AppImage ~/Фото
   сжимать при отрисовке, поэтому плитки выглядят резче (замер: 290-пиксельная
   плитка получала текстуру 384 px и теряла ~7 % детализации на лишнем
   линейном шаге).
-* LRU-кэш `Gdk.Texture` в памяти (по умолчанию 192 МБ, `ERMITAGE_CACHE_MB`):
+* LRU-кэш `Gdk.Texture` в памяти (по умолчанию 192 МБ, `HERMITAGE_CACHE_MB`):
   перерисовка — это только создание render nodes.
 * Работа с пикселями — в пуле потоков, GTK-объекты создаются только в главном
   потоке. Пока задача стоит в очереди, она проверяет, нужна ли ещё.
@@ -347,7 +347,7 @@ GSK_RENDERER=ngl ./dist/Ermitage-x86_64.AppImage ~/Фото
 
 ```bash
 DISPLAY=:0 PYTHONPATH=src python3 tools/bench.py ~/Фото
-ERMITAGE_TIMING=1 ./run.sh ~/Фото     # замеры индексации в консоли
+HERMITAGE_TIMING=1 ./run.sh ~/Фото     # замеры индексации в консоли
 ```
 
 ## Горячие клавиши
@@ -372,7 +372,7 @@ ERMITAGE_TIMING=1 ./run.sh ~/Фото     # замеры индексации в
 ```
 src/masonry_gallery/
 ├── application.py   # Adw.Application, действия, акселераторы, CSS
-├── main.py          # точка входа `ermitage [КАТАЛОГ]`
+├── main.py          # точка входа `hermitage [КАТАЛОГ]`
 ├── window.py        # главное окно: заголовок, поиск, сортировка, DnD, статус
 ├── masonry.py       # masonry-контейнер с виртуализацией и пулом плиток
 ├── tile.py          # плитка: ручная отрисовка в GtkSnapshot

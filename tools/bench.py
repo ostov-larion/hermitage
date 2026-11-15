@@ -204,7 +204,7 @@ def bench(target: str) -> None:
 
 if __name__ == "__main__":
     target = sys.argv[1] if len(sys.argv) > 1 else os.path.expanduser("~/.cache/biglib")
-    app = Adw.Application(application_id="io.github.ermitage.Bench")
+    app = Adw.Application(application_id="io.github.hermitage.Bench")
     app.register(None)
 
     def run_bench(*_args):
