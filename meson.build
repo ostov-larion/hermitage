@@ -12,7 +12,7 @@ moduledir = py.get_install_dir()
 install_subdir(
   'src/masonry_gallery',
   install_dir: moduledir,
-  exclude_files: ['__pycache__', '*.pyc', '__pycache__/*'],
+  exclude_files: ['*.pyc', '__pycache__/*', '**/__pycache__/*'],
 )
 
 # launcher

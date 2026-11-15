@@ -133,7 +133,7 @@ flatpak run io.github.ermitage.Ermitage ~/Фото
 
 Что внутри манифеста:
 
-* рантайм `org.gnome.Platform`/`org.gnome.Sdk` **48** — в нём уже есть GTK 4,
+* рантайм `org.gnome.Platform`/`org.gnome.Sdk` **51** — в нём уже есть GTK 4,
   libadwaita и PyGObject, поэтому приложению нечего компилировать: сборка
   занимает секунды и не требует сети, кроме первого скачивания рантайма
   (`flatpak remote-add --if-not-exists --user flathub
@@ -146,19 +146,22 @@ flatpak run io.github.ermitage.Ermitage ~/Фото
   (`--filesystem=host:ro`) — галерее нужно показывать снимки откуда угодно,
   но запись ей не нужна; плюс доступ к gvfs для «Показать в файловом менеджере».
 
-Проверить сборку без установки:
+Сборка проверена целиком: `flatpak` 1.16.6 + `flatpak-builder` 1.4.4, рантайм
+`org.gnome.Platform//51` (GTK 4.24, libadwaita 1.10, Python 3.14). Собранный
+пакет ставится и запускается:
 
 ```bash
-flatpak-builder --user --force-clean --repo=dist/flatpak-repo build-flatpak \
-  flatpak/io.github.ermitage.Ermitage.json
-flatpak build-export dist/flatpak-repo build-flatpak
+flatpak-builder --user --install --force-clean \
+  --repo=dist/flatpak-repo build-flatpak flatpak/io.github.ermitage.Ermitage.json
+flatpak run io.github.ermitage.Ermitage ~/Фото
 ```
 
-Оговорка: в этом окружении `flatpak`/`flatpak-builder` не установлены, поэтому
-манифест проверен статически (валидный JSON, реальная установка `meson setup
---prefix=/app && ninja install` в подставной корень, запуск установленного
-пакета) — саму сборку образа выполняет `tools/build-flatpak.sh` на машине с
-Flatpak.
+Рантаймы 48 и старше сняты с поддержки (GNOME 48 — с марта 2026), поэтому в
+манифесте 51; при обновлении достаточно поменять `runtime-version`.
+
+Что стоит помнить про песочницу: приложению видна только файловая система,
+разрешённая в `finish-args`, поэтому каталоги вне `host` (например `/tmp`)
+внутри Flatpak не откроются — это ожидаемо, а не ошибка.
 
 ## AppImage (проверить «вживую», без установки)
 
@@ -324,7 +327,7 @@ src/masonry_gallery/
 └── style.css        # минимальный CSS (плитки рисуются в Gsk)
 data/                # .desktop, метаданные AppStream, иконка, схема GSettings
 tools/               # make_samples.py, bench.py, build-appimage.sh, build-flatpak.sh
-flatpak/             # манифест Flatpak (org.gnome.Platform 48)
+flatpak/             # манифест Flatpak (org.gnome.Platform 51)
 dist/                # собранный AppImage (после tools/build-appimage.sh)
 ```
 
