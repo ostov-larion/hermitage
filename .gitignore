@@ -1,16 +1,17 @@
-# собраное и сгенерированное
-build/
-build-*/
-dist/
-.flatpak-builder*/
-flatpak-repo/
+# собраное и сгенерированное (шаблоны в git всё равно попадают: build-aux/)
+/build/
+/build-flatpak/
+/dist/
+/flatpak-repo/
+/.flatpak-builder-state/
+/.flatpak-builder/
 data/gschemas.compiled
 __pycache__/
 *.py[cod]
 *.AppImage
 
 # демо-набор изображений создаётся tools/make_samples.py
-samples/
+/samples/
 
 # окружения и кеши
 .venv/

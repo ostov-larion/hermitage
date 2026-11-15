@@ -1,0 +1,43 @@
+{
+  "app-id": "io.github.ermitage.Ermitage",
+  "runtime": "org.gnome.Platform",
+  "runtime-version": "51",
+  "sdk": "org.gnome.Sdk",
+  "command": "ermitage",
+  "finish-args": [
+    "--share=ipc",
+    "--socket=fallback-x11",
+    "--socket=wayland",
+    "--device=dri",
+    "--filesystem=home:ro",
+    "--filesystem=xdg-run/gvfsd",
+    "--talk-name=org.gtk.vfs.*"
+  ],
+  "cleanup": [
+    "/include",
+    "/lib/pkgconfig",
+    "/share/man",
+    "/share/gtk-doc",
+    "/share/ermitage/tools",
+    "/cache",
+    "/.lock",
+    "/.flatpak-builder"
+  ],
+  "modules": [
+    {
+      "name": "ermitage",
+      "buildsystem": "meson",
+      "config-opts": [
+        "--buildtype=release"
+      ],
+      "sources": [
+        {
+          "type": "git",
+          "url": "https://github.com/ermitage/ermitage.git",
+          "tag": "v1.0.0",
+          "commit": "27508c2e699c5fe56485d393e977f9561d44fa70"
+        }
+      ]
+    }
+  ]
+}

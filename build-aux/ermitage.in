@@ -1,0 +1,13 @@
+#!/bin/sh
+# Запуск установленного «Эрмитажа».
+#
+# Пакет ставится в site-packages префикса (при сборке Flatpak это /app), а
+# системный python в рантайме о таком каталоге не знает — поэтому путь
+# подставляется сборкой (meson) и добавляется в PYTHONPATH.
+moddir="@MODULEDIR@"
+if [ -d "$moddir" ]; then
+  PYTHONPATH="$moddir${PYTHONPATH:+:$PYTHONPATH}"
+  export PYTHONPATH
+fi
+
+exec "@PYTHON@" -m masonry_gallery "$@"
