@@ -34,8 +34,8 @@
         {
           "type": "git",
           "url": "https://github.com/hermitage/hermitage.git",
-          "tag": "v1.2.0",
-          "commit": "3200dc359b7ca6bffdf7c9d9e9c165861633884c"
+          "tag": "v1.2.1",
+          "commit": "962aa5228bbc289ff99e27113ec8e6cab51ced69"
         }
       ]
     }
