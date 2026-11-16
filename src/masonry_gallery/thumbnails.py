@@ -7,7 +7,7 @@
    заставляет JPEG/PNG-загрузчики сжаться в 2/4/8 раз *во время* декодирования —
    это в 5–20 раз меньше работы и памяти на файл.
 2. **Кэш на диске** — один бинарный контейнер
-   `$XDG_CACHE_HOME/masonry-gallery/thumbs-v3.pack` (см. `thumbpack.py`):
+   `$XDG_CACHE_HOME/masonry-gallery/thumbs-v4.pack` (см. `thumbpack.py`):
    повторный показ каталога не требует декодирования вообще, а чтение — это
    срез `mmap` без единого системного вызова на миниатюру. Ключ =
    путь+mtime+размер+бакет, бакеты по 160…1024 px, чтобы не пересоздавать
@@ -67,11 +67,20 @@ def _cache_root() -> str:
 
 
 def _pack_path() -> str:
-    return os.path.join(_cache_root(), "thumbs-v3.pack")
+    return os.path.join(_cache_root(), "thumbs-v4.pack")
 
 
 def _drop_legacy_cache() -> None:
-    """Удаляет старое хранилище «файл на миниатюру» (v2), если оно осталось."""
+    """Убирает кэши прошлых версий: каталог v2 и контейнер v3.
+
+    v3 пришлось похоронить: в рантайме GNOME 51 gdk-pixbuf писал миниатюры
+    PNG с альфа-каналом однокомпонентным JPEG — то есть серыми, и такие
+    записи нельзя переиспользовать.
+    """
+    try:
+        os.unlink(os.path.join(_cache_root(), "thumbs-v3.pack"))
+    except OSError:
+        pass
     legacy = os.path.join(_cache_root(), "thumbs-v2")
     if not os.path.isdir(legacy):
         return
@@ -179,6 +188,48 @@ def _decode(
         new_h = max(1, round(height * scale))
         pixbuf = pixbuf.scale_simple(new_w, new_h, GdkPixbuf.InterpType.HYPER)
     return pixbuf
+
+
+def _jpeg_components(data: bytes) -> int:
+    """Число компонент в SOF-маркере JPEG: 1 — серый, 3 — цвет."""
+    index = 2
+    limit = len(data) - 9
+    while index < limit:
+        if data[index] != 0xFF:
+            index += 1
+            continue
+        marker = data[index + 1]
+        if marker in (0xC0, 0xC1, 0xC2, 0xC3, 0xC5, 0xC6, 0xC7, 0xC9, 0xCA, 0xCB):
+            return data[index + 9]
+        try:
+            index += 2 + int.from_bytes(data[index + 2:index + 4], "big")
+        except ValueError:
+            break
+    return 0
+
+
+def _encode_thumb(pixbuf: GdkPixbuf.Pixbuf) -> bytes | None:
+    """Кодирует миниатюру для дискового контейнера.
+
+    JPEG не умеет прозрачность, и в рантайме GNOME 51 (gdk-pixbuf с
+    glycin-загрузчиками) сохранение RGBA-пиксбафа в JPEG даёт **одно-
+    компонентный, то есть серый** файл: PNG с альфа-каналом после перезапуска
+    показывались чёрно-белыми. Поэтому картинки с альфой кладём в контейнер
+    как PNG (прозрачность сохраняется, читатель определяет формат сам), а для
+    остальных страхуемся проверкой числа компонент.
+    """
+    try:
+        if pixbuf.get_has_alpha() or pixbuf.get_n_channels() == 4:
+            ok, data = pixbuf.save_to_bufferv("png", [], [])
+            return bytes(data) if ok and data else None
+        ok, data = pixbuf.save_to_bufferv("jpeg", ["quality"], ["85"])
+    except (GLib.Error, TypeError):
+        return None
+    if not ok or not data:
+        return None
+    if pixbuf.get_n_channels() >= 3 and _jpeg_components(data) == 1:
+        return None  # кодировщик потерял цвет — в кэш такое не кладём
+    return bytes(data)
 
 
 def _texture_from_bytes(data: bytes) -> Gdk.Texture | None:
@@ -381,12 +432,12 @@ class ThumbnailLoader:
             if is_thumb and self._disk_cache:
                 pack = self._ensure_pack()
                 if pack is not None:
-                    try:
-                        ok, data = pixbuf.save_to_bufferv("jpeg", ["quality"], ["85"])
-                        if ok and data:
+                    data = _encode_thumb(pixbuf)
+                    if data:
+                        try:
                             pack.put(self._digest(path, mtime, size, px), data)
-                    except (GLib.Error, OSError):
-                        pass
+                        except OSError:
+                            pass
 
         GLib.idle_add(self._deliver, key, pixbuf)
 

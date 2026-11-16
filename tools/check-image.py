@@ -29,7 +29,7 @@ gi.require_version("Gtk", "4.0")
 from gi.repository import Gdk, GdkPixbuf, GLib, Gtk  # noqa: E402
 
 from masonry_gallery.imageinfo import dimensions, fast_dimensions  # noqa: E402
-from masonry_gallery.thumbnails import BUCKETS, _decode  # noqa: E402
+from masonry_gallery.thumbnails import BUCKETS, _decode, _encode_thumb  # noqa: E402
 from masonry_gallery.thumbpack import ThumbPack  # noqa: E402
 
 IMAGE_EXT = {
@@ -90,8 +90,8 @@ def check(path: str, pack_path: str | None = None) -> bool:
         if option:
             print(f"  профиль в pixbuf     {name}: {len(option)} байт")
 
-    ok, data = pixbuf.save_to_bufferv("jpeg", ["quality"], ["85"])
-    if not ok or not data:
+    data = _encode_thumb(pixbuf)
+    if not data:
         print("  сохранение в контейнер не удалось")
         return False
     pack_path = pack_path or os.path.join(

@@ -1,6 +1,6 @@
 project(
   'hermitage',
-  version: '1.2.0',
+  version: '1.2.1',
   meson_version: '>= 0.63.0',
   default_options: ['prefix=/usr/local'],
 )

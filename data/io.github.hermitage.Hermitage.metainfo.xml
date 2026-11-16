@@ -67,6 +67,12 @@
   <content_rating type="oars-1.1"/>
 
   <releases>
+    <release version="1.2.1" date="2026-11-16">
+      <description>
+        <p>Исправлено: PNG с прозрачностью после перезапуска показывались
+           чёрно-белыми — кэш миниатюр сохранял их однокомпонентным JPEG.</p>
+      </description>
+    </release>
     <release version="1.2.0" date="2026-11-16">
       <description>
         <ul>
