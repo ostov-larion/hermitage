@@ -510,6 +510,15 @@ class GalleryWindow(Adw.ApplicationWindow):
         if dialog_type is None or content_type is None:
             self._toast("Другие приложения для изображений не найдены")
             return
+        own = _own_app_id()
+        candidates = [
+            info for info in Gio.AppInfo.get_all_for_type(content_type)
+            if info.get_id() != own
+        ]
+        if not candidates:
+            # в песочнице без портала видно только себя — диалог был бы пустым
+            self._toast("Другие приложения для изображений не найдены")
+            return
         dialog = dialog_type.new_for_content_type(
             self, Gtk.DialogFlags.MODAL, content_type
         )
