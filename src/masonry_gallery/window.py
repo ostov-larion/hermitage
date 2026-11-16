@@ -63,6 +63,7 @@ class GalleryWindow(Adw.ApplicationWindow):
 
         self._current_path: str | None = None
         self._loading = False
+        self._cached_view = False
         self._load_started = 0.0
         self._first_paint_at = 0.0
         self._viewer: ViewerWindow | None = None
@@ -524,6 +525,7 @@ class GalleryWindow(Adw.ApplicationWindow):
             target = os.path.dirname(target)
 
         self._current_path = target
+        self._cached_view = False
         self._loading = True
         self._load_started = time.monotonic()
         self._first_paint_at = 0.0
@@ -541,7 +543,28 @@ class GalleryWindow(Adw.ApplicationWindow):
         self._update_title()
 
         self.settings.set_string("last-folder", target)
-        self.model.load([target], on_batch=self._on_batch, on_done=self._on_done)
+        self.model.load(
+            [target],
+            on_batch=self._on_batch,
+            on_done=self._on_done,
+            on_cached=self._on_cached,
+        )
+
+    def _on_cached(self, items) -> None:
+        """Индекс из дискового кэша: сетку показываем сразу, без ожидания обхода.
+
+        Обход каталога при этом продолжается в фоне — если состав папки
+        изменился, `_on_done` заменит список целиком.
+        """
+        self._cached_view = True
+        self.model.push_batch(items)
+        self.model.finish_load()
+        self.view.reset()
+        self._stack.set_visible_child_name("grid")
+        self._update_title()
+        if os.environ.get("HERMITAGE_TIMING"):
+            print(f"[эрмитаж] индекс из кэша: {len(items)} файлов за "
+                  f"{time.monotonic() - self._load_started:.2f} c", flush=True)
 
     def _on_batch(self, batch, done: int) -> None:
         self.model.push_batch(batch)
@@ -555,8 +578,17 @@ class GalleryWindow(Adw.ApplicationWindow):
                       f"{self._first_paint_at - self._load_started:.2f} c", flush=True)
         self._update_title()
 
-    def _on_done(self, count: int) -> None:
+    def _on_done(self, replace=None, count: int = 0) -> None:
         self._loading = False
+        if replace is not None:
+            # папка изменилась с прошлого запуска — показываем свежий список
+            self.model.clear()
+            self.model.push_batch(replace)
+            self.view.reset()
+            if os.environ.get("HERMITAGE_TIMING"):
+                print(f"[эрмитаж] кэш устарел, список заменён: {len(replace)} файлов",
+                      flush=True)
+        cached_view, self._cached_view = self._cached_view, False
         # модель — долгоживущие объекты: выносим их из-под циклического GC,
         # чтобы он не перебирал десятки тысяч элементов на каждой сборке
         gc.collect()
@@ -577,7 +609,8 @@ class GalleryWindow(Adw.ApplicationWindow):
         else:
             self._stack.set_visible_child_name("grid")
             self.view.grab_focus()
-            if count > 400:
+            # тост только когда действительно шёл обход, а не показ из кэша
+            if count > 400 and not cached_view:
                 self._toast(f"Проиндексировано {plural_images(count)}", timeout=3)
         self._update_title()
         if os.environ.get("HERMITAGE_TIMING"):

@@ -63,7 +63,9 @@ def _cache_root() -> str:
     return os.path.join(base, "masonry-gallery", "thumbs-v2")
 
 
-def _target_size(path: str, max_px: int) -> tuple[int, int] | None:
+def _target_size(
+    path: str, max_px: int, dims: tuple[int, int] | None = None
+) -> tuple[int, int] | None:
     """Целевой размер декодирования с сохранением пропорций.
 
     Важно: `GdkPixbuf.PixbufLoader.set_size()` — это не «максимум», а точный
@@ -72,12 +74,18 @@ def _target_size(path: str, max_px: int) -> tuple[int, int] | None:
     поворот меняет местами обе стороны, так что пропорции сохраняются).
     """
     src_w = src_h = 0
-    try:
-        info = GdkPixbuf.Pixbuf.get_file_info(path)
-    except GLib.Error:
-        info = None
-    if info and info[0] is not None:
-        src_w, src_h = info[1], info[2]
+    # размеры уже известны из индекса: не дёргаем загрузчик лишний раз. В
+    # Flatpak это экономит ~12 мс на каждой плитке (glycin запускается в
+    # отдельном процессе песочницы), а на больших папках — заметные секунды.
+    if dims is not None and dims[0] > 0 and dims[1] > 0:
+        src_w, src_h = int(dims[0]), int(dims[1])
+    if src_w <= 0 or src_h <= 0:
+        try:
+            info = GdkPixbuf.Pixbuf.get_file_info(path)
+        except GLib.Error:
+            info = None
+        if info and info[0] is not None:
+            src_w, src_h = info[1], info[2]
     if src_w <= 0 or src_h <= 0:
         fallback = fast_dimensions(path)
         if fallback is None:
@@ -90,7 +98,9 @@ def _target_size(path: str, max_px: int) -> tuple[int, int] | None:
     return max(1, round(src_w * scale)), max(1, round(src_h * scale))
 
 
-def _decode(path: str, max_px: int) -> GdkPixbuf.Pixbuf | None:
+def _decode(
+    path: str, max_px: int, dims: tuple[int, int] | None = None
+) -> GdkPixbuf.Pixbuf | None:
     """Декодирует файл, сразу уменьшая его до max_px по длинной стороне.
 
     Декодируем вдвое крупнее (по возможности — насколько позволит сам файл) и
@@ -100,7 +110,7 @@ def _decode(path: str, max_px: int) -> GdkPixbuf.Pixbuf | None:
     """
     loader = GdkPixbuf.PixbufLoader()
     decode_px = max_px * SUPERSAMPLE
-    target = _target_size(path, decode_px)
+    target = _target_size(path, decode_px, dims)
     try:
         if target is not None:
             # подсказка загрузчику: сжаться в 1/2, 1/4 или 1/8 ещё на этапе декода
@@ -210,7 +220,10 @@ class ThumbnailLoader:
         self._pending.setdefault(key, []).append(request)
         if key not in self._inflight:
             self._inflight.add(key)
-            self._pool.submit(self._work, key, item.path, int(item.mtime), item.size, px)
+            self._pool.submit(
+                self._work, key, item.path, int(item.mtime), item.size, px,
+                (item.width, item.height),
+            )
         return request
 
     def load_full(self, item, callback, max_px: int = 4096) -> ThumbRequest:
@@ -226,7 +239,10 @@ class ThumbnailLoader:
         self._pending.setdefault(key, []).append(request)
         if key not in self._inflight:
             self._inflight.add(key)
-            self._pool.submit(self._work, key, item.path, int(item.mtime), item.size, max_px)
+            self._pool.submit(
+                self._work, key, item.path, int(item.mtime), item.size, max_px,
+                (item.width, item.height),
+            )
         return request
 
     def shutdown(self) -> None:
@@ -246,7 +262,15 @@ class ThumbnailLoader:
         ).hexdigest()
         return os.path.join(self._root, str(bucket), digest + ".jpg")
 
-    def _work(self, key: tuple, path: str, mtime: int, size: int, px: int) -> None:
+    def _work(
+        self,
+        key: tuple,
+        path: str,
+        mtime: int,
+        size: int,
+        px: int,
+        dims: tuple[int, int] | None = None,
+    ) -> None:
         # быстрая проверка: пока задача стояла в очереди, плитку могли
         # переиспользовать — тогда декодировать нечего
         pending = self._pending.get(key)
@@ -271,7 +295,7 @@ class ThumbnailLoader:
                 self.stats["errors"] += 1
                 GLib.idle_add(self._deliver, key, None)
                 return
-            pixbuf = _decode(path, px)
+            pixbuf = _decode(path, px, dims)
             if pixbuf is None:
                 self.stats["errors"] += 1
                 GLib.idle_add(self._deliver, key, None)

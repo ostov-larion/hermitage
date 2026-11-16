@@ -170,17 +170,34 @@ class GalleryModel:
         on_batch=None,
         on_done=None,
         on_error=None,
+        on_cached=None,
     ) -> None:
         """Индексирует каталоги в фоне, отдавая результаты порциями.
 
-        on_batch(items, total_so_far) — вызывается в главном потоке;
-        on_done(count) — по завершении.
+        on_batch(items, total_so_far) — порция для добавления к уже показанному;
+        on_cached(items) — готовый индекс из дискового кэша (показывается сразу,
+            до обхода каталога); после него порции on_batch не приходят;
+        on_done(items_or_none, count) — по завершении: `items` не None, если
+            кэш был показан, а обход нашёл другой набор (тогда его нужно
+            заменить целиком).
         """
+        from . import indexcache  # локальный импорт: indexcache знает про Item
+
         self.cancel_load()
         token = self._load_token
         roots = list(paths)
+        directories = [r for r in roots if os.path.isdir(r)]
 
         def worker() -> None:
+            known: dict[str, Item] = {}
+            cached: list[Item] | None = None
+            cache_valid = False
+            if directories:
+                cached, cache_valid = indexcache.load(directories)
+                if cached:
+                    known = {item.path: item for item in cached}
+                    GLib.idle_add(_safe, on_cached, cached)
+
             found: list[Item] = []
             for root in roots:
                 if token != self._load_token:
@@ -199,7 +216,8 @@ class GalleryModel:
                         )
                     )
             if not found:
-                GLib.idle_add(_safe, on_done, 0)
+                # папку могли опустошить — показанный кэш нужно убрать
+                GLib.idle_add(_safe, on_done, [] if cached else None, 0)
                 return
 
             # Заголовки читаются в один поток: это ~15 мкс на файл, а GIL всё
@@ -207,27 +225,53 @@ class GalleryModel:
             # и замедляют работу). Зато каждая порция отдаётся главному потоку
             # через рукопожатие: индексатор ждёт, пока UI её отрисует, поэтому
             # очередь не растёт и окно остаётся отзывчивым.
+            #
+            # Если файл уже есть в кэше индекса и не менялся, заголовок не
+            # читаем: в Flatpak одно только `GdkPixbuf.get_file_info` тянет за
+            # собой sandbox-загрузчик glycin (~12 мс), и на 50 000 файлов это
+            # минуты.
             batch: list[Item] = []
             done = 0
             gate = threading.Event()
+            # показанный кэш уже содержит весь список — порциями его не дублируем
+            streaming = cached is None
 
             for item in found:
                 if token != self._load_token:
                     return
-                _probe_dimensions(item)
+                previous = known.get(item.path)
+                if (
+                    previous is not None
+                    and previous.size == item.size
+                    and int(previous.mtime) == int(item.mtime)
+                    and previous.width > 0
+                    and previous.height > 0
+                ):
+                    item.width, item.height = previous.width, previous.height
+                else:
+                    _probe_dimensions(item)
                 batch.append(item)
                 done += 1
-                if len(batch) >= 300:
+                if streaming and len(batch) >= 300:
                     gate.clear()
                     GLib.idle_add(_deliver_batch, on_batch, list(batch), done, gate)
                     gate.wait(timeout=5.0)
                     batch.clear()
 
-            if batch:
+            if streaming and batch:
                 gate.clear()
                 GLib.idle_add(_deliver_batch, on_batch, list(batch), done, gate)
                 gate.wait(timeout=5.0)
-            GLib.idle_add(_safe, on_done, done)
+
+            if cached is None:
+                replace = None
+            else:
+                replace = None if _same_index(cached, found) else found
+            GLib.idle_add(_safe, on_done, replace, done)
+
+            # кэш перезаписываем, только если он отсутствовал или устарел
+            if directories and (cached is None or not cache_valid or replace is not None):
+                indexcache.save(directories, found)
 
         self._pool = ThreadPoolExecutor(max_workers=1, thread_name_prefix="indexer")
         self._pool.submit(worker)
@@ -290,6 +334,22 @@ class GalleryModel:
         self.items = items
         self.aspects = [_clamped_aspect(item) for item in items]
         self._index_map = {item.path: index for index, item in enumerate(items)}
+
+
+def _same_index(a: list[Item], b: list[Item]) -> bool:
+    """Совпадают ли два списка файлов (путь, размер, mtime, размеры картинки)."""
+    if len(a) != len(b):
+        return False
+    for left, right in zip(a, b):
+        if (
+            left.path != right.path
+            or left.size != right.size
+            or int(left.mtime) != int(right.mtime)
+            or left.width != right.width
+            or left.height != right.height
+        ):
+            return False
+    return True
 
 
 def _safe(callback, *args):

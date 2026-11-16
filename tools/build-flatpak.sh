@@ -36,7 +36,7 @@ MANIFEST="flatpak/${APP_ID}.json"                    # источник: раб�
 [ "$MODE" = git ] && MANIFEST="flatpak/flathub/${APP_ID}.json"   # как на Flathub
 
 VERSION=$(sed -n "s/^__version__ = \"\(.*\)\"/\1/p" src/masonry_gallery/__init__.py)
-: "${VERSION:=1.0.0}"
+: "${VERSION:=1.1.0}"
 BUNDLE="dist/Hermitage-${VERSION}-${ARCH}.flatpak"
 
 for tool in flatpak flatpak-builder; do
