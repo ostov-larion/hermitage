@@ -129,7 +129,7 @@ class HermitageApplication(Adw.Application):
             "win.zoom-out": ["<Control>minus"],
             "win.shortcuts": ["<Control>question"],
             "app.toggle-dark": ["<Control>d"],
-            "win.open-external": ["<Control><Shift>o"],
+            "win.open-with": ["<Control><Shift>o"],
             "app.quit": ["<Control>q"],
         }.items():
             self.set_accels_for_action(action, accels)

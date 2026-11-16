@@ -44,6 +44,47 @@ THUMB_SIZES = {"s": 150, "m": 240, "l": 340, "xl": 480}
 CLIPBOARD_MAX_PX = 8192
 
 
+_portal_cache: list[bool] = []
+
+
+def _portal_available() -> bool:
+    """Есть ли в сессии xdg-desktop-portal (внутри Flatpak он почти всегда есть).
+
+    Нужен, чтобы отличить «портал покажет выбор приложения» от «GTK молча
+    запустит обработчик по умолчанию».
+    """
+    if _portal_cache:
+        return _portal_cache[0]
+    available = False
+    try:
+        bus = Gio.bus_get_sync(Gio.BusType.SESSION, None)
+        reply = bus.call_sync(
+            "org.freedesktop.DBus",
+            "/org/freedesktop/DBus",
+            "org.freedesktop.DBus",
+            "NameHasOwner",
+            GLib.Variant("(s)", ("org.freedesktop.portal.Desktop",)),
+            None,
+            Gio.DBusCallFlags.NONE,
+            1000,
+            None,
+        )
+        available = bool(reply.unpack()[0])
+    except GLib.Error:
+        available = False
+    _portal_cache.append(available)
+    return available
+
+
+def _own_app_id() -> str:
+    """Идентификатор самого «Эрмитажа» в формате .desktop-файла."""
+    app_id = GLib.get_application_name() or ""
+    app = Gio.Application.get_default()
+    if app is not None:
+        app_id = app.get_application_id() or app_id
+    return f"{app_id}.desktop" if app_id else ""
+
+
 def png_bytes_for_clipboard(path: str, hint=None) -> bytes | None:
     """Готовит PNG для буфера обмена. Вызывается из фонового потока.
 
@@ -340,7 +381,7 @@ class GalleryWindow(Adw.ApplicationWindow):
     def _build_context_popover(self) -> Gtk.PopoverMenu:
         model = Gio.Menu()
         model.append("Открыть", "win.activate-item")
-        model.append("Открыть в приложении по умолчанию", "win.open-external")
+        model.append("Открыть с помощью…", "win.open-with")
         section = Gio.Menu()
         section.append("Скопировать изображение", "win.copy-image")
         section.append("Скопировать путь", "win.copy-path")
@@ -362,7 +403,7 @@ class GalleryWindow(Adw.ApplicationWindow):
             ("open", self._action_open),
             ("refresh", self._action_refresh),
             ("activate-item", self._action_activate_item),
-            ("open-external", self._action_open_external),
+            ("open-with", self._action_open_with),
             ("select-all", self._action_select_all),
             ("clear-selection", self._action_clear_selection),
             ("clear-search", self._action_clear_search),
@@ -399,7 +440,7 @@ class GalleryWindow(Adw.ApplicationWindow):
     def _set_selection_actions(self, enabled: bool) -> None:
         for name in (
             "activate-item",
-            "open-external",
+            "open-with",
             "copy-path",
             "show-in-files",
             "clear-selection",
@@ -435,15 +476,65 @@ class GalleryWindow(Adw.ApplicationWindow):
         if item is not None:
             self._open_viewer(item)
 
-    def _action_open_external(self, *_args) -> None:
-        items = self.view.selected_items()
-        item = items[0] if items else self.view.cursor_item()
+    def _action_open_with(self, *_args) -> None:
+        """«Открыть с помощью…» — выбор приложения, а не запуск обработчика.
+
+        Раньше здесь был запуск приложения по умолчанию: если «Эрмитаж» сам
+        зарегистрирован обработчиком картинок, команда открывала ещё одно его
+        окно. Теперь просим выбрать приложение у портала (`always-ask`) — тогда
+        список собирает система и в нём есть приложения хоста, даже из песочницы.
+        """
+        item = self._target_item()
         if item is None:
             return
+        gfile = Gio.File.new_for_path(item.path)
+        if not _portal_available():
+            # без портала FileLauncher просто запустит обработчик по умолчанию —
+            # а это снова «Эрмитаж»; показываем свой список приложений
+            self._app_chooser_fallback(gfile)
+            return
+        launcher = Gtk.FileLauncher.new(gfile)
+        launcher.set_always_ask(True)
+        launcher.launch(self, None, self._on_open_with_done)
+
+    def _on_open_with_done(self, launcher, result) -> None:
         try:
-            Gio.AppInfo.launch_default_for_uri(GLib.filename_to_uri(item.path, None), None)
+            launcher.launch_finish(result)
         except GLib.Error:
-            self._toast("Не удалось открыть изображение в другом приложении")
+            self._app_chooser_fallback(launcher.get_file())
+
+    def _app_chooser_fallback(self, gfile) -> None:
+        """Запасной выбор приложения, если портала (или выбора) нет."""
+        content_type = Gio.content_type_guess(gfile.get_path(), None)[0]
+        dialog_type = getattr(Gtk, "AppChooserDialog", None)
+        if dialog_type is None or content_type is None:
+            self._toast("Другие приложения для изображений не найдены")
+            return
+        dialog = dialog_type.new_for_content_type(
+            self, Gtk.DialogFlags.MODAL, content_type
+        )
+        dialog.connect("response", self._on_app_chosen, gfile)
+        dialog.present()
+
+    def _on_app_chosen(self, dialog, response, gfile) -> None:
+        if response == Gtk.ResponseType.OK:
+            info = dialog.get_widget().get_app_info()
+            if info is None:
+                pass
+            elif info.get_id() == _own_app_id():
+                # выбирать в «Открыть с помощью…» саму галерею бессмысленно:
+                # получилось бы второе такое же окно
+                self._toast("Это и есть «Эрмитаж»")
+            else:
+                try:
+                    info.launch([gfile], None)
+                except GLib.Error:
+                    self._toast("Не удалось запустить приложение")
+        dialog.destroy()
+
+    def _target_item(self):
+        items = self.view.selected_items()
+        return items[0] if items else self.view.cursor_item()
 
     def _action_select_all(self, *_args) -> None:
         if len(self.model):
@@ -503,12 +594,41 @@ class GalleryWindow(Adw.ApplicationWindow):
         )
 
     def _action_show_in_files(self, *_args) -> None:
-        items = self.view.selected_items()
-        if not items:
+        """Показать файл в файловом менеджере.
+
+        `launch_default_for_uri` для папки открывал приложение, назначенное
+        обработчиком каталогов, — а это мог быть сам «Эрмитаж» (в его .desktop
+        объявлен `inode/directory`), то есть вместо файлового менеджера
+        появлялось второе окно галереи. `open_containing_folder` просит это у
+        портала и всегда попадает в файловый менеджер.
+        """
+        item = self._target_item()
+        if item is None:
             return
-        folder = items[0].folder
+        launcher = Gtk.FileLauncher.new(Gio.File.new_for_path(item.path))
+        launcher.open_containing_folder(self, None, self._on_containing_done)
+
+    def _on_containing_done(self, launcher, result) -> None:
         try:
-            Gio.AppInfo.launch_default_for_uri(GLib.filename_to_uri(folder, None), None)
+            launcher.open_containing_folder_finish(result)
+        except GLib.Error:
+            self._show_in_files_dbus(launcher.get_file())
+
+    def _show_in_files_dbus(self, gfile) -> None:
+        """Запасной путь: интерфейс org.freedesktop.FileManager1."""
+        try:
+            bus = Gio.bus_get_sync(Gio.BusType.SESSION, None)
+            bus.call_sync(
+                "org.freedesktop.FileManager1",
+                "/org/freedesktop/FileManager1",
+                "org.freedesktop.FileManager1",
+                "ShowItems",
+                GLib.Variant("(ass)", ([gfile.get_uri()], "")),
+                None,
+                Gio.DBusCallFlags.NONE,
+                2000,
+                None,
+            )
         except GLib.Error:
             self._toast("Не удалось открыть файловый менеджер")
 

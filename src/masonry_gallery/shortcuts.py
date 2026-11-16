@@ -46,7 +46,7 @@ SHORTCUTS_XML = """<?xml version="1.0" encoding="UTF-8"?>
             </child>
             <child>
               <object class="GtkShortcutsShortcut">
-                <property name="title">Открыть в приложении по умолчанию</property>
+                <property name="title">Открыть с помощью…</property>
                 <property name="accelerator">&lt;Control&gt;&lt;Shift&gt;o</property>
               </object>
             </child>
