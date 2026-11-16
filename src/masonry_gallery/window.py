@@ -16,14 +16,18 @@ from __future__ import annotations
 
 import gc
 import os
+import threading
 import time
 
 import gi
 
 gi.require_version("Gtk", "4.0")
 gi.require_version("Gdk", "4.0")
+gi.require_version("GdkPixbuf", "2.0")
 gi.require_version("Adw", "1")
-from gi.repository import Adw, Gdk, Gio, GLib, GObject, Gtk  # noqa: E402
+from gi.repository import (  # noqa: E402
+    Adw, Gdk, GdkPixbuf, Gio, GLib, GObject, Gtk,
+)
 
 from .masonry import MasonryView  # noqa: E402
 from .model import GalleryModel  # noqa: E402
@@ -34,6 +38,51 @@ from .utils import plural_images  # noqa: E402
 from .viewer import ViewerWindow  # noqa: E402
 
 THUMB_SIZES = {"s": 150, "m": 240, "l": 340, "xl": 480}
+
+#: Больше этого по длинной стороне в буфер не кладём: PNG на 100 МБ в буфере
+#: обмена — это и память, и подвисание вставляющего приложения.
+CLIPBOARD_MAX_PX = 8192
+
+
+def png_bytes_for_clipboard(path: str, hint=None) -> bytes | None:
+    """Готовит PNG для буфера обмена. Вызывается из фонового потока.
+
+    PNG — единственный формат, который понимают и браузеры, и мессенджеры, и
+    офисные пакеты. Если картинка больше `CLIPBOARD_MAX_PX`, уменьшаем её: для
+    вставки в чат или на страницу этого достаточно, а буфер остаётся вменяемым.
+    """
+    width = height = 0
+    if hint is not None and hint[0] > 0 and hint[1] > 0:
+        width, height = int(hint[0]), int(hint[1])
+    if width <= 0 or height <= 0:
+        try:
+            info = GdkPixbuf.Pixbuf.get_file_info(path)
+        except GLib.Error:
+            info = None
+        if info and info[0] is not None:
+            width, height = info[1], info[2]
+    longest = max(width, height)
+    try:
+        if longest > CLIPBOARD_MAX_PX:
+            scale = CLIPBOARD_MAX_PX / longest
+            pixbuf = GdkPixbuf.Pixbuf.new_from_file_at_scale(
+                path, max(1, round(width * scale)), max(1, round(height * scale)), True
+            )
+        else:
+            pixbuf = GdkPixbuf.Pixbuf.new_from_file(path)
+    except (GLib.Error, OSError):
+        return None
+    try:
+        rotated = pixbuf.apply_embedded_orientation()
+        if rotated is not None:
+            pixbuf = rotated
+    except Exception:  # noqa: BLE001 — опция может отсутствовать
+        pass
+    try:
+        ok, data = pixbuf.save_to_bufferv("png", [], [])
+    except (GLib.Error, TypeError):
+        return None
+    return data if ok else None
 THUMB_ORDER = ("s", "m", "l", "xl")
 
 SORT_MODES = (
@@ -293,6 +342,7 @@ class GalleryWindow(Adw.ApplicationWindow):
         model.append("Открыть", "win.activate-item")
         model.append("Открыть в приложении по умолчанию", "win.open-external")
         section = Gio.Menu()
+        section.append("Скопировать изображение", "win.copy-image")
         section.append("Скопировать путь", "win.copy-path")
         section.append("Показать в файловом менеджере", "win.show-in-files")
         model.append_section(None, section)
@@ -316,6 +366,7 @@ class GalleryWindow(Adw.ApplicationWindow):
             ("select-all", self._action_select_all),
             ("clear-selection", self._action_clear_selection),
             ("clear-search", self._action_clear_search),
+            ("copy-image", self._action_copy_image),
             ("copy-path", self._action_copy_path),
             ("show-in-files", self._action_show_in_files),
             ("zoom-in", self._action_zoom_in),
@@ -405,6 +456,40 @@ class GalleryWindow(Adw.ApplicationWindow):
         self._search_entry.set_text("")
         self._search_button.set_active(False)
         self._apply_search()
+
+    def _action_copy_image(self, *_args) -> None:
+        """Кладёт изображение в буфер обмена как PNG — вставляется в браузер,
+        мессенджер, документ."""
+        items = self.view.selected_items()
+        item = items[0] if items else self.view.cursor_item()
+        if item is None:
+            return
+        hint = (item.width, item.height)
+        threading.Thread(
+            target=self._copy_image_worker,
+            args=(item.path, hint),
+            name="copy-image",
+            daemon=True,
+        ).start()
+
+    def _copy_image_worker(self, path: str, hint) -> None:
+        data = png_bytes_for_clipboard(path, hint)
+        GLib.idle_add(self._finish_copy_image, data)
+
+    def _finish_copy_image(self, data) -> bool:
+        if not data:
+            self._toast("Не удалось подготовить изображение")
+            return False
+        try:
+            provider = Gdk.ContentProvider.new_for_bytes(
+                "image/png", GLib.Bytes.new(data)
+            )
+            self.get_clipboard().set_content(provider)
+        except Exception:  # noqa: BLE001 — буфер обмена мог быть занят
+            self._toast("Не удалось скопировать изображение")
+            return False
+        self._toast(f"Изображение скопировано · {len(data) // 1024} КБ")
+        return False
 
     def _action_copy_path(self, *_args) -> None:
         items = self.view.selected_items()

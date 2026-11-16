@@ -34,6 +34,12 @@ SHORTCUTS_XML = """<?xml version="1.0" encoding="UTF-8"?>
             </child>
             <child>
               <object class="GtkShortcutsShortcut">
+                <property name="title">Скопировать изображение</property>
+                <property name="accelerator">&lt;Control&gt;c</property>
+              </object>
+            </child>
+            <child>
+              <object class="GtkShortcutsShortcut">
                 <property name="title">Скопировать путь</property>
                 <property name="accelerator">&lt;Control&gt;&lt;Shift&gt;c</property>
               </object>

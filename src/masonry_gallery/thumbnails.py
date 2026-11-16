@@ -6,10 +6,12 @@
    JPEG целиком, чтобы потом сжать его в 240 px. `GdkPixbuf.PixbufLoader.set_size()`
    заставляет JPEG/PNG-загрузчики сжаться в 2/4/8 раз *во время* декодирования —
    это в 5–20 раз меньше работы и памяти на файл.
-2. **Кэш на диске** (`$XDG_CACHE_HOME/masonry-gallery/thumbs`): повторный показ
-   каталога не требует декодирования вообще. Ключ = путь+mtime+размер+бакет,
-   бакеты по 160…1024 px, чтобы не пересоздавать миниатюры на каждый пиксель
-   изменения размера плитки.
+2. **Кэш на диске** — один бинарный контейнер
+   `$XDG_CACHE_HOME/masonry-gallery/thumbs-v3.pack` (см. `thumbpack.py`):
+   повторный показ каталога не требует декодирования вообще, а чтение — это
+   срез `mmap` без единого системного вызова на миниатюру. Ключ =
+   путь+mtime+размер+бакет, бакеты по 160…1024 px, чтобы не пересоздавать
+   миниатюры на каждый пиксель изменения размера плитки.
 3. **Кэш в памяти (LRU)** уже в виде `Gdk.Texture` — то есть картинка лежит в
    виде готовой для GPU текстуры, и перерисовка это только создание нескольких
    узлов render node.
@@ -32,6 +34,7 @@ gi.require_version("GdkPixbuf", "2.0")
 from gi.repository import Gdk, GdkPixbuf, GLib  # noqa: E402
 
 from .imageinfo import fast_dimensions  # noqa: E402
+from .thumbpack import ThumbPack  # noqa: E402
 
 # Бакеты размеров миниатюр: выбирается наименьший, покрывающий запрос.
 # Шаг ~10 %, чтобы готовую текстуру не приходилось заметно сжимать при
@@ -59,8 +62,35 @@ def bucket_for(px: int) -> int:
 
 def _cache_root() -> str:
     base = GLib.get_user_cache_dir()
-    # версия в пути: при смене конвейера декодирования старые файлы не мешают
-    return os.path.join(base, "masonry-gallery", "thumbs-v2")
+    # версия в имени: при смене конвейера декодирования старый файл не мешает
+    return os.path.join(base, "masonry-gallery")
+
+
+def _pack_path() -> str:
+    return os.path.join(_cache_root(), "thumbs-v3.pack")
+
+
+def _drop_legacy_cache() -> None:
+    """Удаляет старое хранилище «файл на миниатюру» (v2), если оно осталось."""
+    legacy = os.path.join(_cache_root(), "thumbs-v2")
+    if not os.path.isdir(legacy):
+        return
+    try:
+        for bucket in os.listdir(legacy):
+            folder = os.path.join(legacy, bucket)
+            if os.path.isdir(folder):
+                for name in os.listdir(folder):
+                    try:
+                        os.unlink(os.path.join(folder, name))
+                    except OSError:
+                        pass
+                try:
+                    os.rmdir(folder)
+                except OSError:
+                    pass
+        os.rmdir(legacy)
+    except OSError:
+        pass
 
 
 def _target_size(
@@ -151,6 +181,14 @@ def _decode(
     return pixbuf
 
 
+def _texture_from_bytes(data: bytes) -> Gdk.Texture | None:
+    """Миниатюра из контейнера → текстура, минуя промежуточный pixbuf."""
+    try:
+        return Gdk.Texture.new_from_bytes(GLib.Bytes.new(data))
+    except (GLib.Error, TypeError):
+        return None
+
+
 class ThumbRequest:
     """Ручка запроса: позволяет отменить доставку, если плитку переиспользовали."""
 
@@ -174,8 +212,14 @@ class ThumbnailLoader:
         memory_budget: int | None = None,
         disk_cache: bool = True,
     ) -> None:
-        self._root = cache_dir or _cache_root()
+        self._pack_path = (
+            os.path.join(cache_dir, "thumbs-v3.pack") if cache_dir else _pack_path()
+        )
         self._disk_cache = disk_cache
+        # контейнер открывается при первом обращении: не задерживаем старт
+        # сканированием индекса, если миниатюры в этой сессии не понадобятся
+        self._pack: ThumbPack | None = None
+        self._pack_lock = threading.Lock()
         # бюджет кэша текстур: 192 МБ хватает на ~30 плиток экрана и десятки
         # экранов назад; настраивается через HERMITAGE_CACHE_MB
         if memory_budget is None:
@@ -248,6 +292,12 @@ class ThumbnailLoader:
     def shutdown(self) -> None:
         self._closed = True
         self._pool.shutdown(wait=False, cancel_futures=True)
+        pack, self._pack = self._pack, None
+        if pack is not None:
+            try:
+                pack.close()
+            except OSError:
+                pass
         self._pending.clear()
         self._mem.clear()
         self._full.clear()
@@ -256,11 +306,31 @@ class ThumbnailLoader:
         return self._mem_bytes
 
     # --- рабочая часть (пул потоков) --------------------------------------
-    def _cache_path(self, path: str, mtime: int, size: int, bucket: int) -> str:
-        digest = hashlib.sha1(
+    @staticmethod
+    def _digest(path: str, mtime: int, size: int, bucket: int) -> bytes:
+        return hashlib.sha1(
             f"{path}|{mtime}|{size}|{bucket}".encode("utf-8", "replace")
-        ).hexdigest()
-        return os.path.join(self._root, str(bucket), digest + ".jpg")
+        ).digest()
+
+    def _ensure_pack(self) -> ThumbPack | None:
+        if not self._disk_cache:
+            return None
+        pack = self._pack
+        if pack is not None:
+            return pack
+        with self._pack_lock:
+            if self._pack is None:
+                try:
+                    self._pack = ThumbPack(self._pack_path)
+                except OSError:
+                    self._disk_cache = False
+                    return None
+                # чистим старое «файл на миниатюру» в фоне: на 100 000 файлов
+                # это заметное время, а ждать его при старте незачем
+                threading.Thread(
+                    target=_drop_legacy_cache, name="cache-cleanup", daemon=True
+                ).start()
+            return self._pack
 
     def _work(
         self,
@@ -279,16 +349,23 @@ class ThumbnailLoader:
             return
 
         pixbuf = None
+        texture = None
         is_thumb = key[0] == "t"
 
         if is_thumb and self._disk_cache:
-            cache_file = self._cache_path(path, mtime, size, px)
-            try:
-                if os.path.exists(cache_file):
-                    pixbuf = GdkPixbuf.Pixbuf.new_from_file(cache_file)
-                    self.stats["disk"] += 1
-            except GLib.Error:
-                pixbuf = None
+            pack = self._ensure_pack()
+            if pack is not None:
+                cached = pack.get(self._digest(path, mtime, size, px))
+                if cached:
+                    # сразу текстура: Gdk.Texture.new_from_bytes в 1,5 раза
+                    # быстрее связки «pixbuf.new_from_file + new_for_pixbuf»
+                    texture = _texture_from_bytes(cached)
+                    if texture is not None:
+                        self.stats["disk"] += 1
+
+        if texture is not None:
+            GLib.idle_add(self._deliver, key, None, texture)
+            return
 
         if pixbuf is None:
             if not os.path.isfile(path):
@@ -302,24 +379,25 @@ class ThumbnailLoader:
                 return
             self.stats["decoded"] += 1
             if is_thumb and self._disk_cache:
-                cache_file = self._cache_path(path, mtime, size, px)
-                try:
-                    os.makedirs(os.path.dirname(cache_file), exist_ok=True)
-                    pixbuf.savev(cache_file, "jpeg", ["quality"], ["85"])
-                except (GLib.Error, OSError):
-                    pass
+                pack = self._ensure_pack()
+                if pack is not None:
+                    try:
+                        ok, data = pixbuf.save_to_bufferv("jpeg", ["quality"], ["85"])
+                        if ok and data:
+                            pack.put(self._digest(path, mtime, size, px), data)
+                    except (GLib.Error, OSError):
+                        pass
 
         GLib.idle_add(self._deliver, key, pixbuf)
 
     # --- главный поток ----------------------------------------------------
-    def _deliver(self, key: tuple, pixbuf) -> bool:
+    def _deliver(self, key: tuple, pixbuf, texture=None) -> bool:
         if self._closed:
             return False
         self._inflight.discard(key)
         requests = self._pending.pop(key, ())
 
-        texture = None
-        if pixbuf is not None:
+        if texture is None and pixbuf is not None:
             try:
                 texture = Gdk.Texture.new_for_pixbuf(pixbuf)
             except Exception:  # noqa: BLE001

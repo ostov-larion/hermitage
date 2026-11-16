@@ -122,6 +122,7 @@ class HermitageApplication(Adw.Application):
             "win.refresh": ["<Control>r", "F5"],
             "win.select-all": ["<Control>a"],
             "win.escape": ["Escape"],
+            "win.copy-image": ["<Control>c"],
             "win.copy-path": ["<Control><Shift>c"],
             "win.activate-item": ["<Control>Return"],
             "win.zoom-in": ["<Control>plus", "<Control>equal"],

@@ -67,6 +67,16 @@
   <content_rating type="oars-1.1"/>
 
   <releases>
+    <release version="1.2.0" date="2026-11-16">
+      <description>
+        <ul>
+          <li>Миниатюры хранятся в одном бинарном файле-контейнере: чтение через
+              mmap без файловых операций, меньше мусора в каталоге кэша.</li>
+          <li>Новый пункт «Скопировать изображение» в контекстном меню (Ctrl+C):
+              картинка попадает в буфер обмена как PNG.</li>
+        </ul>
+      </description>
+    </release>
     <release version="1.1.0" date="2026-11-16">
       <description>
         <ul>
